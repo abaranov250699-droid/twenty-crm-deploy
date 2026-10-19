@@ -1,0 +1,27 @@
+name: Initialize Neon Database
+
+on:
+  workflow_dispatch:
+    inputs:
+      neon_url:
+        description: 'Neon PG Connection String (postgresql://...)'
+        required: true
+        type: string
+
+jobs:
+  init-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Twenty DB Migrations
+        env:
+          PG_DATABASE_URL: ${{ inputs.neon_url }}
+        run: |
+          echo "Starting database initialization on GitHub Actions runner with 7GB RAM..."
+          docker run --rm \
+            -e PG_DATABASE_URL="$PG_DATABASE_URL" \
+            -e REDIS_URL="rediss://default:gQAAAAAAAgGzAAIgcDEyZTdiYzVmMmYxZDE0ZTdkOWYyNjYwNjlhMDdlMTQzNw@fresh-goblin-131507.upstash.io:6379" \
+            -e ENCRYPTION_KEY="Non+dLbWz2Q4LgJQVDEjui1pFQf7P9+nzyLTmwg4FyY=" \
+            -e DISABLE_CRON_JOBS_REGISTRATION="true" \
+            twentycrm/twenty:latest \
+            sh -c "yarn database:init:prod && yarn command:prod upgrade"
+          echo "Database successfully initialized!"
