@@ -1,65 +1,32 @@
 services:
-  # 1. Основной веб-сервер Twenty CRM (Frontend + API Backend)
+  # Основной сервис Twenty CRM (Web + API + Встроенный фоновый воркер)
   - type: web
-    name: twenty-server
+    name: twenty-crm
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter # Рекомендуется Starter (1GB RAM) во избежание OOM при сборке миграций
-    region: frankfurt # Рекомендуется выбирать тот же регион, что и база Neon (например, Frankfurt)
+    plan: starter # Рекомендуется тариф Starter (1GB RAM) для стабильной работы миграций
+    region: frankfurt # Регион совпадает с Neon (eu-central-1) для минимального пинга
     healthCheckPath: /healthz
     envVars:
-      - key: NODE_PORT
-        value: 3000
       - key: PORT
         value: 3000
+      - key: NODE_PORT
+        value: 3000
       - key: SERVER_URL
-        sync: false # Ваш публичный адрес Render, например: https://twenty-server.onrender.com
+        sync: false # Ваш URL на Render (например: https://twenty-crm-xxxx.onrender.com)
       - key: PG_DATABASE_URL
-        sync: false # Строка подключения Neon Direct (postgresql://...)
+        sync: false # Строка подключения Neon (Direct connection)
       - key: REDIS_URL
-        sync: false # Строка подключения Redis (Upstash или Render Redis)
+        sync: false # Строка подключения Redis (Upstash или Render)
       - key: ENCRYPTION_KEY
-        generateValue: true
+        generateValue: true # Render сгенерирует криптографический ключ автоматически
       - key: APP_SECRET
-        generateValue: true
+        generateValue: true # Render сгенерирует секрет автоматически
       - key: STORAGE_TYPE
         value: local
+      - key: ENABLE_COMBINED_WORKER
+        value: "true" # Запускает BullMQ воркер внутри контейнера (экономит ресурсы)
       - key: DISABLE_DB_MIGRATIONS
         value: "false"
       - key: DISABLE_CRON_JOBS_REGISTRATION
         value: "false"
-
-  # 2. Фоновый воркер (BullMQ фоновые задачи, синхронизация, рассылки)
-  - type: worker
-    name: twenty-worker
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerCommand: yarn worker:prod
-    plan: starter
-    region: frankfurt
-    envVars:
-      - key: SERVER_URL
-        fromService:
-          type: web
-          name: twenty-server
-          property: host
-      - key: PG_DATABASE_URL
-        sync: false # Та же строка подключения Neon Direct
-      - key: REDIS_URL
-        sync: false # Тот же Redis
-      - key: ENCRYPTION_KEY
-        fromService:
-          type: web
-          name: twenty-server
-          property: envVar:ENCRYPTION_KEY
-      - key: APP_SECRET
-        fromService:
-          type: web
-          name: twenty-server
-          property: envVar:APP_SECRET
-      - key: DISABLE_DB_MIGRATIONS
-        value: "true"
-      - key: DISABLE_CRON_JOBS_REGISTRATION
-        value: "true"
-      - key: STORAGE_TYPE
-        value: local
