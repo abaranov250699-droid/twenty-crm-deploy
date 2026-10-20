@@ -1,7 +1,7 @@
 FROM twentycrm/twenty:latest
 
-# Увеличиваем лимит памяти V8 heap для Node.js, чтобы миграции TypeORM не упирались в дефолтные 256MB
-ENV NODE_OPTIONS="--max-old-space-size=420"
+# Для Railway даем Node.js до 2GB памяти при необходимости
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 USER root
 COPY start.sh /app/start.sh
